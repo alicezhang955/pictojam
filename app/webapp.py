@@ -16,7 +16,7 @@ server_bp.secret_key = 'some key for session'
 
 @server_bp.route('/')
 def index():
-    return render_template("home.html", title='Home Page')
+    return render_template("index.html", title='Home Page')
 
 @server_bp.route('/playlists')
 def playlists():
