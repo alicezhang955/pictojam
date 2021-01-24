@@ -172,9 +172,9 @@ def register_callbacks(dashapp):
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)')
         
-        if value1=="PLAYLIST":
+        if value2=="PLAYLIST":
           fig.update_layout(showlegend = True)
-        elif value1=="DATE":
+        elif value2=="DATE":
           fig.update_layout(showlegend = False)
 
         return fig
