@@ -19,16 +19,10 @@ import json
 import pandas as pd
 from urllib import parse
 
-# TODO: 
-# REPLACE AUTH CODE
-auth_code = "BQAwdCMEw7WxkUh9krHOig531zU7mGqNxg0BB-qTCqGP9C04iQ2-bXSUP6kF-Djn_5X7zf_o4FS5mzinW-1KLQ6V3KFl0whx6LPS2bjBtVp8CaR8mS43dQe7ykbT1IISVFLkjNyZNxuiKDa2I3ziTR24EbOuhj6cJWM"
-
-def get_data_from_playlist_id(auth_code, playlist_id):
+def get_data_from_playlist_id(auth_header, playlist_id):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
     querystring = {'market': "US", 'offset': 0}
-    headers = {
-        'Authorization': f"Bearer {auth_code}",
-        }
+    headers = auth_header
     
     response = requests.request("GET", url, headers = headers, params=querystring)
     next_search_url = json.loads(response.text)['next']
@@ -55,7 +49,7 @@ def get_data_from_playlist_id(auth_code, playlist_id):
     
     return ids, song_names, artist_names, add_dates
 
-def get_matrix_from_ids(auth_code, ids):
+def get_matrix_from_ids(auth_header, ids):
     start = 0
     keys = ['danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness','liveness','valence']
     matrix = [np.zeros((len(ids), len(keys)))]
@@ -66,9 +60,7 @@ def get_matrix_from_ids(auth_code, ids):
 
         url = "https://api.spotify.com/v1/audio-features"
         querystring = {"ids":querystr}
-        headers = {
-            'Authorization': f"Bearer {auth_code}",
-            }
+        headers = auth_header
 
         response = requests.request("GET", url, headers = headers, params=querystring)
         if len(response.text) == 0:
@@ -85,7 +77,7 @@ def get_matrix_from_ids(auth_code, ids):
         start += 100
     return matrix
 
-def compare_playlists(auth_code, playlist_ids):
+def compare_playlists(auth_header, playlist_ids):
     matrix = []
     c = []
     song_names = []
@@ -93,11 +85,11 @@ def compare_playlists(auth_code, playlist_ids):
     add_dates = []
     index = 0
     for playlist_id in playlist_ids:
-        song_ids, new_song_names, new_artist_names, new_add_dates = get_data_from_playlist_id(auth_code, playlist_id)
+        song_ids, new_song_names, new_artist_names, new_add_dates = get_data_from_playlist_id(auth_header, playlist_id)
         song_names.extend(new_song_names)
         artist_names.extend(new_artist_names)
         add_dates.extend(new_add_dates)
-        new_matrix = get_matrix_from_ids(auth_code, song_ids)
+        new_matrix = get_matrix_from_ids(auth_header, song_ids)
         if len(matrix) != 0:
             if len(new_matrix) != 0:
                 matrix = np.vstack((matrix, new_matrix))
@@ -108,6 +100,16 @@ def compare_playlists(auth_code, playlist_ids):
 
     return matrix, c, song_names, artist_names, add_dates
 
+def get_playlist_names_from_ids(auth_header, playlist_ids):
+  playlist_names = []
+  for playlist_id in playlist_ids:
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}"
+    headers = auth_header
+    
+    response = requests.request("GET", url, headers = headers)
+    name = json.loads(response.text)["name"]
+    playlist_names.append(name)
+  return playlist_names
 
 
 def register_callbacks(dashapp):
@@ -115,10 +117,11 @@ def register_callbacks(dashapp):
     def update_graph(value1, value2, search):
       if search is not None:
         parsed = parse.parse_qs(search)
-        playlist_ids = list(parsed.keys())
-        playlist_ids[0] = playlist_ids[0][1:] # remove leading "?"
+        playlist_ids = list(parsed.keys())[1:]
+        auth_header = json.loads(parsed[list(parsed.keys())[0]][0].replace('\'','\"'))
+        playlist_ids[0] = playlist_ids[0] # remove leading "?"
 
-        matrix, c, song_names, artist_names, add_dates = compare_playlists(auth_code, playlist_ids)
+        matrix, c, song_names, artist_names, add_dates = compare_playlists(auth_header, playlist_ids)
         playlist_indices = {}
         for i in range(np.max(c)+1):
             playlist_indices[i] = np.where(np.array(c) == i)
@@ -135,20 +138,22 @@ def register_callbacks(dashapp):
           "PHATE": phate.PHATE(verbose = False).fit_transform(matrix),
         }
 
+        playlist_names = get_playlist_names_from_ids(auth_header, playlist_ids)
+
         X = matrices[value1]
         if value2 == "PLAYLIST":
           # create one trace per playlist
           fig = go.Figure()
           for playlist_index in range(np.max(c)+1):
-            fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
+            fig.add_trace(go.Scatter(name=f'{playlist_names[playlist_index]}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
               'color': playlist_index
             }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
         elif value2 == "DATE":
           # create one trace per playlist
           fig = go.Figure()
           for playlist_index in range(np.max(c)+1):
-            fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
-              'color': days_ago
+            fig.add_trace(go.Scatter(name=f'{playlist_names[playlist_index]}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
+              'color': days_ago, 'cmin': min(days_ago), 'cmax': max(days_ago), 'colorbar': {'thickness': 20, 'title': 'Days ago added'}
             }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
         
 
@@ -163,10 +168,14 @@ def register_callbacks(dashapp):
               'showgrid': False,
               'zeroline': False,
             },
-            showlegend = True,
             hovermode='closest',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)')
+        
+        if value1=="PLAYLIST":
+          fig.update_layout(showlegend = True)
+        elif value1=="DATE":
+          fig.update_layout(showlegend = False)
 
         return fig
       else:

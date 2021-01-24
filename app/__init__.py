@@ -14,7 +14,7 @@ def create_app():
 
     return server
 
-external_stylesheets = ['https://gist.githubusercontent.com/dclliu/ea4755af8d5f3bae9456757d23e4d93b/raw/059d2f5db0129b662b05666c5a680c4b28560241/style.css', 'https://codepen.io/chriddyp/pen/brPBPO.css']
+external_stylesheets = ['https://gist.githubusercontent.com/dclliu/ea4755af8d5f3bae9456757d23e4d93b/raw/059d2f5db0129b662b05666c5a680c4b28560241/style.css', 'https://codepen.io/chriddyp/pen/brPBPO.css', '/static/style.css']
 
 def register_dashapps(app):
     from app.dashapp1.layout import layout

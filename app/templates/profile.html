@@ -2,36 +2,16 @@
 
 {% block main %}
   <div style="background-color: #D7DFF3; margin: 0; padding: 0; width: 100%; padding-top: 2em;">
-
     <div class="container">
-
-      <div class="row">
-        <h1> Hi {{ user.display_name }} :) </h1>
-      </div>
-
       <div class="row" style="padding-top: 1em; padding-bottom: 2em;">
-        <!-- <div class="col-sm-4">
 
-          <section class="sec">
-
-            {% if user.images %}
-              <img src="{{user.images[0].url}}" class="img-square">
-            {% else %}
-              <img src="http://bit.ly/2nXRRfX" class="img-square">
-            {% endif %}
-
-            <h3>You have {{ user.followers.total }} followers!</h3>
-          </section>
-        </div> -->
-
-        <!-- <div class="col-sm-4"> -->
-
-          <h3>Select playlists to analyze: </h3>
-          <!-- <hr class="half-rule"/> -->
+          <h3 style="font-size: 0.75em; font-weight: 700; margin-bottom: 1.5em;">Select playlists to analyze: </h3>
           
-          <form id="myForm" action="/dashboard" method="GET"> 
-          
+          <form id="myForm" action="/dashboard" method="GET" style="width: 100%; text-align: center"> 
             <div class="gallery-grid" style="width: 100%">
+              
+                <input type="hidden" name="authcode" value="{{user_auth_header}}" />
+    
                 {% for play in playlists %}
                   <div class='card' style="width: 100%; background-color: #D7DFF3;">
                     <input type="checkbox"  id="{{ play.id }}" name="{{ play.id}}"/>
@@ -42,11 +22,9 @@
     
                   </div>
                 {% endfor %}
-            </div>
-
-            <button id="button_submit">Get Selected Values</button>
-
-          </form>
+          </div>
+          <button class="button" id="button_submit" style="margin-top: 5em;">Analyze Playlists</button>
+        </form>
 
           
 

@@ -36,7 +36,10 @@ def auth():
 def callback():
 
     auth_token = request.args['code']
+    # print("AUTH TOKEN IS:")
+    # print(auth_token)
     auth_header = spotify.authorize(auth_token)
+    session['auth_token'] = auth_token
     session['auth_header'] = auth_header
     return profile()
 
@@ -44,6 +47,9 @@ def callback():
 def profile():
     if 'auth_header' in session:
         auth_header = session['auth_header']
+        user_auth_token = session['auth_token']
+        print("checking")
+        print(auth_header)
         # get profile data
         profile_data = spotify.get_users_profile(auth_header)
 
@@ -57,7 +63,9 @@ def profile():
             return render_template("profile.html",
                                user=profile_data,
                                playlists=playlist_data["items"],
-                               recently_played=recently_played["items"])
+                               recently_played=recently_played["items"], 
+                               user_auth_token=user_auth_token,
+                               user_auth_header=auth_header)
 
     return render_template('profile.html')
 def valid_token(resp):
