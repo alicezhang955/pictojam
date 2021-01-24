@@ -14,6 +14,7 @@ def create_app():
 
     return server
 
+external_stylesheets = ['https://gist.githubusercontent.com/dclliu/ea4755af8d5f3bae9456757d23e4d93b/raw/059d2f5db0129b662b05666c5a680c4b28560241/style.css', 'https://codepen.io/chriddyp/pen/brPBPO.css']
 
 def register_dashapps(app):
     from app.dashapp1.layout import layout
@@ -26,10 +27,11 @@ def register_dashapps(app):
                          server=app,
                          url_base_pathname='/dashboard/',
                          assets_folder=get_root_path(__name__) + '/dashboard/assets/',
-                         meta_tags=[meta_viewport])
+                         meta_tags=[meta_viewport],
+                         external_stylesheets=external_stylesheets)
 
     with app.app_context():
-        dashapp1.title = 'Dashapp 1'
+        dashapp1.title = 'Pictojams'
         dashapp1.layout = layout
         register_callbacks(dashapp1)
 

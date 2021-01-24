@@ -11,12 +11,15 @@
 
       <div class="row" style="padding-top: 1em; padding-bottom: 2em;">
         <!-- <div class="col-sm-4">
+
           <section class="sec">
+
             {% if user.images %}
               <img src="{{user.images[0].url}}" class="img-square">
             {% else %}
               <img src="http://bit.ly/2nXRRfX" class="img-square">
             {% endif %}
+
             <h3>You have {{ user.followers.total }} followers!</h3>
           </section>
         </div> -->
@@ -26,54 +29,72 @@
           <h3>Select playlists to analyze: </h3>
           <!-- <hr class="half-rule"/> -->
           
+          <form id="myForm" action="/dashboard" method="GET"> 
+          
             <div class="gallery-grid" style="width: 100%">
-              {% for play in playlists %}
-                <div class='card' style="width: 100%; background-color: #D7DFF3;">
-                  
-                  <input type="checkbox"  id="{{ play.name }}"/>
-                  <label for="{{ play.name }}"><img src="{{play.images[0].url}}" /></label>
-                  <div style="text-align: center; font-size: 0.75em; font-weight: 500;">
-                    <a href="{{ play.external_urls.spotify }}" style="color: black">{{ play.name }}</a>
-                  </div>
-
-                  
+                {% for play in playlists %}
+                  <div class='card' style="width: 100%; background-color: #D7DFF3;">
+                    <input type="checkbox"  id="{{ play.id }}" name="{{ play.id}}"/>
+                    <label for="{{ play.id }}"><img src="{{play.images[0].url}}" /></label>
+                    <div style="text-align: center; font-size: 0.75em; font-weight: 500;">
+                      <a href="{{ play.external_urls.spotify }}" style="color: black">{{ play.name }}</a>
+                    </div>
     
-                </div>
-              {% endfor %}
-              <input type="submit" value="⮞">
+                  </div>
+                {% endfor %}
             </div>
 
+            <button id="button_submit">Get Selected Values</button>
+
+          </form>
+
+          
 
           </div>
+              <script>
+               $('#button_submit').click(function()
+                  {var check_box_ids = $('#myForm [type="checkbox"]:checked').map(function () 
+                  {return this.id;}).get();
+                  });
+
+              </script>
 
           
           
         <!-- </div> -->
-  <!--
+         <!--
         <div class="col-sm-4">
+
           <h3> Your top artist: </h3>   
           <hr class="half-rule"/>
+
           {% for artist in top_artists %}
             <div class='row'>
               <a href="{{url_for('artist', id=artist.id) }}">
+
                 <div class='col-sm-8'>
                   <span>{{ artist.name }} </span>
                 </div>
+
               </a>
             </div>
           {% endfor %}
         </div> -->
 
         <!-- <div class="col-sm-4">
+
           <h3> Recently played:</h3>
           <hr class="half-rule"/>
           
+
           {% for track in recently_played %}
             <div class='row'>
               <a href="{{track.track.external_urls.spotify}}">
+
                 <div class='col-sm-8'>
                   <span>{{track.track.name}}</span>
                 </div>
+
               </a>
             </div>
           {% endfor %}

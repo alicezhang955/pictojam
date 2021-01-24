@@ -17,10 +17,11 @@ from sklearn.manifold import TSNE
 import phate
 import json
 import pandas as pd
+from urllib import parse
 
 # TODO: 
 # REPLACE AUTH CODE
-auth_code = "BQBpEAFlkO0tKaQZVCKWrR9JO7Jni5O2gzS5f2rGocvpjbBxIQwz6UiYnl8dV9ZkmjBopJ4mzfBy8Oc4ByFswKPCaaWZR1vIOruQa9W-slquzRZbJDzJJdBgxZPuM9UsSUf6zuLjaWMEBgPlNcbUdYZzbCnuzX5G4iM"
+auth_code = "BQAwdCMEw7WxkUh9krHOig531zU7mGqNxg0BB-qTCqGP9C04iQ2-bXSUP6kF-Djn_5X7zf_o4FS5mzinW-1KLQ6V3KFl0whx6LPS2bjBtVp8CaR8mS43dQe7ykbT1IISVFLkjNyZNxuiKDa2I3ziTR24EbOuhj6cJWM"
 
 def get_data_from_playlist_id(auth_code, playlist_id):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -109,59 +110,64 @@ def compare_playlists(auth_code, playlist_ids):
 
 
 
-# TODO: 
-# REPLACE PLAYLIST IDS
-
-matrix, c, song_names, artist_names, add_dates = compare_playlists(auth_code, ["1B8ML30C5MhYOTdhhyYoyf", "32Q28zp4kNJdlp3ySJY7b9", "17NdZwoykVi8d5HZvCS2oT", "652AoU9fV6NuMSVLNuECKJ"])
-playlist_indices = {}
-for i in range(np.max(c)+1):
-    playlist_indices[i] = np.where(np.array(c) == i)
-
-import dateutil.parser as dparser
-import datetime
-date_objs = [dparser.parse(date) for date in add_dates]
-date_strs = [obj.strftime('%Y-%m-%d') for obj in date_objs]
-days_ago = [(datetime.datetime.now().date() - date.date()).days for date in date_objs]
-
-matrices = {
-  "PCA": PCA(n_components = 2).fit_transform(matrix),
-  "TSNE": TSNE(n_components=2).fit_transform(matrix),
-  "PHATE": phate.PHATE(verbose = False).fit_transform(matrix),
-}
-
-
 def register_callbacks(dashapp):
-    @dashapp.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value'), Input('my-dropdown2', 'value')])
-    def update_graph(value1, value2):
-      X = matrices[value1]
-      if value2 == "PLAYLIST":
-        # create one trace per playlist
-        fig = go.Figure()
-        for playlist_index in range(np.max(c)+1):
-          fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
-            'color': playlist_index
-          }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
-      elif value2 == "DATE":
-        # create one trace per playlist
-        fig = go.Figure()
-        for playlist_index in range(np.max(c)+1):
-          fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
-            'color': days_ago
-          }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
-      
+    @dashapp.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value'), Input('my-dropdown2', 'value'), Input('url','search')])
+    def update_graph(value1, value2, search):
+      if search is not None:
+        parsed = parse.parse_qs(search)
+        playlist_ids = list(parsed.keys())
+        playlist_ids[0] = playlist_ids[0][1:] # remove leading "?"
 
-      # update plotly layout to remove axes
-      fig.update_layout(title='Title', xaxis = {
-            'visible': False,
-            'showgrid': False,
-            'zeroline': False,
-          },
-          yaxis = {
-            'visible': False,
-            'showgrid': False,
-            'zeroline': False,
-          },
-          showlegend = True,
-          hovermode='closest')
+        matrix, c, song_names, artist_names, add_dates = compare_playlists(auth_code, playlist_ids)
+        playlist_indices = {}
+        for i in range(np.max(c)+1):
+            playlist_indices[i] = np.where(np.array(c) == i)
 
-      return fig
+        import dateutil.parser as dparser
+        import datetime
+        date_objs = [dparser.parse(date) for date in add_dates]
+        date_strs = [obj.strftime('%Y-%m-%d') for obj in date_objs]
+        days_ago = [(datetime.datetime.now().date() - date.date()).days for date in date_objs]
+
+        matrices = {
+          "PCA": PCA(n_components = 2).fit_transform(matrix),
+          "TSNE": TSNE(n_components=2).fit_transform(matrix),
+          "PHATE": phate.PHATE(verbose = False).fit_transform(matrix),
+        }
+
+        X = matrices[value1]
+        if value2 == "PLAYLIST":
+          # create one trace per playlist
+          fig = go.Figure()
+          for playlist_index in range(np.max(c)+1):
+            fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
+              'color': playlist_index
+            }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
+        elif value2 == "DATE":
+          # create one trace per playlist
+          fig = go.Figure()
+          for playlist_index in range(np.max(c)+1):
+            fig.add_trace(go.Scatter(name=f'Playlist {playlist_index+1}',x = X[playlist_indices[playlist_index]][:,0], y = X[playlist_indices[playlist_index]][:,1], mode = 'markers+text', marker = {
+              'color': days_ago
+            }, hoverinfo = "text", hovertext = [song_names[i] + " — " + artist_names[i] for i in list(playlist_indices[playlist_index])[0]]  ))
+        
+
+        # update plotly layout to remove axes
+        fig.update_layout(xaxis = {
+              'visible': False,
+              'showgrid': False,
+              'zeroline': False,
+            },
+            yaxis = {
+              'visible': False,
+              'showgrid': False,
+              'zeroline': False,
+            },
+            showlegend = True,
+            hovermode='closest',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)')
+
+        return fig
+      else:
+        return html.H1("Loading...")
